@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { goalsApi } from "../api/goals";
 import { useCompany } from "../context/CompanyContext";
 import { useDialog } from "../context/DialogContext";
@@ -10,11 +10,32 @@ import { EmptyState } from "../components/EmptyState";
 import { PageSkeleton } from "../components/PageSkeleton";
 import { Button } from "@/components/ui/button";
 import { Target, Plus } from "lucide-react";
+import type { Goal } from "@paperclipai/shared";
 
 export function Goals() {
   const { selectedCompanyId } = useCompany();
   const { openNewGoal } = useDialog();
   const { setBreadcrumbs } = useBreadcrumbs();
+  const queryClient = useQueryClient();
+
+  const deleteGoal = useMutation({
+    mutationFn: (id: string) => goalsApi.remove(id),
+    onSuccess: () => {
+      if (selectedCompanyId) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.goals.list(selectedCompanyId),
+        });
+      }
+    },
+  });
+
+  const handleDeleteGoal = (goal: Goal) => {
+    const confirmed = window.confirm(
+      `Delete "${goal.title}"? This cannot be undone.`,
+    );
+    if (!confirmed) return;
+    deleteGoal.mutate(goal.id);
+  };
 
   useEffect(() => {
     setBreadcrumbs([{ label: "Goals" }]);
@@ -55,7 +76,7 @@ export function Goals() {
               New Goal
             </Button>
           </div>
-          <GoalTree goals={goals} goalLink={(goal) => `/goals/${goal.id}`} />
+          <GoalTree goals={goals} goalLink={(goal) => `/goals/${goal.id}`} onDelete={handleDeleteGoal} />
         </>
       )}
     </div>
