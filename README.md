@@ -23,6 +23,27 @@
 
 <br/>
 
+## Fork Management
+
+This is a fork of [paperclipai/paperclip](https://github.com/paperclipai/paperclip) maintained by mct-dev.
+
+### Syncing upstream changes
+
+```bash
+gh repo sync mct-dev/paperclip --branch master
+```
+
+Or manually:
+```bash
+git remote add upstream https://github.com/paperclipai/paperclip.git
+git fetch upstream
+git rebase upstream/master
+```
+
+### mct-dev patches
+
+Local patches are committed directly to `master`. When syncing upstream, rebase mct-dev commits on top of the new upstream HEAD.
+
 ## What is Paperclip?
 
 # Open-source orchestration for zero-human companies
