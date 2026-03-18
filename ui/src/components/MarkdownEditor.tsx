@@ -548,8 +548,11 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
           return;
         }
 
-        // Mention keyboard handling
-        if (mentionActive) {
+        // Mention keyboard handling — use ref (not React state) to avoid React 18
+        // automatic-batching lag: setMentionState called from native DOM listeners
+        // (selectionchange/input) may not be flushed by the time a keydown fires.
+        const activeMentionState = mentionStateRef.current;
+        if (activeMentionState !== null && mentions && mentions.length > 0) {
           // Space dismisses the popup (let the character be typed normally)
           if (e.key === " ") {
             if (pendingClearRef.current !== null) {
@@ -577,19 +580,31 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
             if (e.key === "ArrowDown") {
               e.preventDefault();
               e.stopPropagation();
-              setMentionIndex((prev) => Math.min(prev + 1, filteredMentions.length - 1));
+              // Clamp using ref-derived count for freshness
+              const q2 = activeMentionState.query.toLowerCase();
+              const refFilteredLen = mentions.filter((m) => m.name.toLowerCase().includes(q2)).slice(0, 8).length;
+              setMentionIndex((prev) => Math.min(prev + 1, refFilteredLen - 1));
               return;
             }
             if (e.key === "ArrowUp") {
               e.preventDefault();
               e.stopPropagation();
+              const q2 = activeMentionState.query.toLowerCase();
+              const refFilteredLen = mentions.filter((m) => m.name.toLowerCase().includes(q2)).slice(0, 8).length;
               setMentionIndex((prev) => Math.max(prev - 1, 0));
               return;
             }
             if (e.key === "Enter" || e.key === "Tab") {
               e.preventDefault();
               e.stopPropagation();
-              selectMention(filteredMentions[mentionIndex]);
+              // Re-derive filtered list from ref state to guarantee freshness.
+              const q = activeMentionState.query.toLowerCase();
+              const currentFiltered = mentions
+                .filter((m) => m.name.toLowerCase().includes(q))
+                .slice(0, 8);
+              if (currentFiltered.length > 0) {
+                selectMention(currentFiltered[mentionIndex]);
+              }
               return;
             }
           }
